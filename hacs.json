@@ -1,0 +1,16 @@
+{
+  "name": "Plex Media Server",
+  "domain": "plex",
+  "integrations": [
+    "plex"
+  ],
+  "config_flow": true,
+  "documentation": "https://www.home-assistant.io/integrations/plex/",
+  "requirements": [
+    "plexapi>=4.10.0",
+    "plexwebsocket>=0.0.12"
+  ],
+  "codeowners": [
+    "@xanderstrike"
+  ]
+}
