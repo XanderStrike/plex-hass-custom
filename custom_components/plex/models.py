@@ -53,6 +53,36 @@ class PlexSession:
         self.state = self.player.state
         self.username = next(iter(session.usernames), None)
 
+        # Transcoding
+        self.transcoding_active = False
+        self.transcoding_container = None
+        self.transcoding_codec = None
+        self.transcoding_audio_codec = None
+        self.transcoding_source_video_codec = None
+        self.transcoding_source_audio_codec = None
+        self.transcoding_completion_percentage = None
+        self.transcoding_width = None
+        self.transcoding_height = None
+        self.transcoding_framerate = None
+        self.transcoding_is_video_direct = False
+        self.transcoding_is_audio_direct = False
+
+        transcode_session = getattr(session, "transcodeSession", None)
+        if transcode_session:
+            self.transcoding_active = transcode_session.videoDecision == "transcode"
+            self.transcoding_container = transcode_session.container
+            self.transcoding_codec = transcode_session.videoCodec
+            self.transcoding_audio_codec = transcode_session.audioCodec
+            self.transcoding_source_video_codec = getattr(
+                transcode_session, "sourceVideoCodec", None
+            )
+            self.transcoding_source_audio_codec = getattr(
+                transcode_session, "sourceAudioCodec", None
+            )
+            self.transcoding_completion_percentage = transcode_session.progress
+            self.transcoding_is_video_direct = transcode_session.videoDecision == "copy"
+            self.transcoding_is_audio_direct = transcode_session.audioDecision == "copy"
+
         # Used by sensor entity
         sensor_user_list = [self.username, self.device_product]
         self.sensor_title = None
@@ -74,6 +104,10 @@ class PlexSession:
 
         if media.duration:
             self.media_duration = int(media.duration / 1000)
+
+        self.transcoding_width = getattr(media, "width", None)
+        self.transcoding_height = getattr(media, "height", None)
+        self.transcoding_framerate = getattr(media, "videoFrameRate", None)
 
         if media.librarySectionID in SPECIAL_SECTIONS:
             self.media_library_title = SPECIAL_SECTIONS[media.librarySectionID]

@@ -387,6 +387,78 @@ class PlexMediaPlayer(MediaPlayerEntity):
         return self.session.media_episode
 
     @property
+    @needs_session
+    def transcoding_active(self):
+        """Return whether transcoding is active."""
+        return self.session.transcoding_active
+
+    @property
+    @needs_session
+    def transcoding_container(self):
+        """Return the container of the transcoded media."""
+        return self.session.transcoding_container
+
+    @property
+    @needs_session
+    def transcoding_codec(self):
+        """Return the video codec of the transcoded media."""
+        return self.session.transcoding_codec
+
+    @property
+    @needs_session
+    def transcoding_audio_codec(self):
+        """Return the audio codec of the transcoded media."""
+        return self.session.transcoding_audio_codec
+
+    @property
+    @needs_session
+    def transcoding_source_video_codec(self):
+        """Return the source video codec of the transcoded media."""
+        return self.session.transcoding_source_video_codec
+
+    @property
+    @needs_session
+    def transcoding_source_audio_codec(self):
+        """Return the source audio codec of the transcoded media."""
+        return self.session.transcoding_source_audio_codec
+
+    @property
+    @needs_session
+    def transcoding_completion_percentage(self):
+        """Return the completion percentage of the transcode."""
+        return self.session.transcoding_completion_percentage
+
+    @property
+    @needs_session
+    def transcoding_width(self):
+        """Return the width of the transcoded media."""
+        return self.session.transcoding_width
+
+    @property
+    @needs_session
+    def transcoding_height(self):
+        """Return the height of the transcoded media."""
+        return self.session.transcoding_height
+
+    @property
+    @needs_session
+    def transcoding_framerate(self):
+        """Return the framerate of the transcoded media."""
+        return self.session.transcoding_framerate
+
+    @property
+    @needs_session
+    def transcoding_is_video_direct(self):
+        """Return whether video is being direct streamed."""
+        return self.session.transcoding_is_video_direct
+
+    @property
+    @needs_session
+    def transcoding_is_audio_direct(self):
+        """Return whether audio is being direct streamed."""
+        return self.session.transcoding_is_audio_direct
+
+    @property
     def supported_features(self) -> MediaPlayerEntityFeature:
         """Flag media player features that are supported."""
         if self.device and "playback" in self._device_protocol_capabilities:
