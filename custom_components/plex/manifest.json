@@ -1,6 +1,7 @@
 {
   "domain": "plex",
   "name": "Plex Media Server",
+  "version": "0.0.1",
   "codeowners": ["@jjlawren"],
   "config_flow": true,
   "dependencies": ["http"],

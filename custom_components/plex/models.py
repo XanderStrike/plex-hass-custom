@@ -53,6 +53,9 @@ class PlexSession:
         self.state = self.player.state
         self.username = next(iter(session.usernames), None)
 
+        session_transcode_key = getattr(session, "transcodeSession", None)
+        self.transcode_session_id = None
+
         # Transcoding
         self.transcoding_active = False
         self.transcoding_container = None
@@ -68,6 +71,21 @@ class PlexSession:
         self.transcoding_is_audio_direct = False
 
         transcode_session = getattr(session, "transcodeSession", None)
+        if not transcode_session and session_transcode_key:
+            transcode_sessions = self.plex_server.plex_server.transcodeSessions()
+            if session_transcode_key:
+                for ts in transcode_sessions:
+                    if ts.key and session_transcode_key in ts.key:
+                        transcode_session = ts
+                        self.transcode_session_id = ts.key
+                        break
+
+        _LOGGER.debug(
+            "Session %s transcodeSession: %s, session type: %s",
+            session.sessionKey,
+            transcode_session,
+            type(session).__name__,
+        )
         if transcode_session:
             self.transcoding_active = transcode_session.videoDecision == "transcode"
             self.transcoding_container = transcode_session.container
@@ -108,6 +126,31 @@ class PlexSession:
         self.transcoding_width = getattr(media, "width", None)
         self.transcoding_height = getattr(media, "height", None)
         self.transcoding_framerate = getattr(media, "videoFrameRate", None)
+
+        transcode_session = getattr(media, "transcodeSession", None)
+        if not transcode_session:
+            transcode_sessions = self.plex_server.plex_server.transcodeSessions()
+            session_transcode_key = getattr(media, "transcodeSession", None)
+            if session_transcode_key:
+                for ts in transcode_sessions:
+                    if ts.key and session_transcode_key in ts.key:
+                        transcode_session = ts
+                        break
+
+        if transcode_session:
+            self.transcoding_active = transcode_session.videoDecision == "transcode"
+            self.transcoding_container = transcode_session.container
+            self.transcoding_codec = transcode_session.videoCodec
+            self.transcoding_audio_codec = transcode_session.audioCodec
+            self.transcoding_source_video_codec = getattr(
+                transcode_session, "sourceVideoCodec", None
+            )
+            self.transcoding_source_audio_codec = getattr(
+                transcode_session, "sourceAudioCodec", None
+            )
+            self.transcoding_completion_percentage = transcode_session.progress
+            self.transcoding_is_video_direct = transcode_session.videoDecision == "copy"
+            self.transcoding_is_audio_direct = transcode_session.audioDecision == "copy"
 
         if media.librarySectionID in SPECIAL_SECTIONS:
             self.media_library_title = SPECIAL_SECTIONS[media.librarySectionID]
@@ -156,6 +199,25 @@ class PlexSession:
             self.sensor_title = media.title
         else:
             self.sensor_title = "Unknown"
+
+    def update_from_transcode_session(self, transcode_info):
+        """Update transcoding attributes from websocket transcode session data."""
+        self.transcode_session_id = transcode_info.get("key")
+        self.transcoding_active = transcode_info.get("videoDecision") == "transcode"
+        self.transcoding_container = transcode_info.get("container")
+        self.transcoding_codec = transcode_info.get("videoCodec")
+        self.transcoding_audio_codec = transcode_info.get("audioCodec")
+        self.transcoding_source_video_codec = transcode_info.get("sourceVideoCodec")
+        self.transcoding_source_audio_codec = transcode_info.get("sourceAudioCodec")
+        self.transcoding_completion_percentage = transcode_info.get("progress")
+        self.transcoding_is_video_direct = transcode_info.get("videoDecision") == "copy"
+        self.transcoding_is_audio_direct = transcode_info.get("audioDecision") == "copy"
+        _LOGGER.debug(
+            "Updated transcoding for session %s: active=%s container=%s",
+            self.session_key,
+            self.transcoding_active,
+            self.transcoding_container,
+        )
 
     @property
     def media_position(self):

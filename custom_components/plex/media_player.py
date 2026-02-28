@@ -585,6 +585,24 @@ class PlexMediaPlayer(MediaPlayerEntity):
             if value := getattr(self, attr, None):
                 attributes[attr] = value
 
+        for attr in (
+            "transcoding_active",
+            "transcoding_container",
+            "transcoding_codec",
+            "transcoding_audio_codec",
+            "transcoding_source_video_codec",
+            "transcoding_source_audio_codec",
+            "transcoding_completion_percentage",
+            "transcoding_width",
+            "transcoding_height",
+            "transcoding_framerate",
+            "transcoding_is_video_direct",
+            "transcoding_is_audio_direct",
+        ):
+            value = getattr(self, attr, None)
+            if value is not None:
+                attributes[attr] = value
+
         return attributes
 
     @property

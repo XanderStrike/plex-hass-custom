@@ -213,9 +213,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     hass,
                     PLEX_UPDATE_LIBRARY_SIGNAL.format(server_id),
                 )
+        elif msgtype == "transcodeSession.update":
+            hass.async_create_task(plex_server.async_update_transcode_session(data))
 
     session = async_get_clientsession(hass)
-    subscriptions = ["playing", "status"]
+    subscriptions = ["playing", "status", "transcodeSession.update"]
     verify_ssl = server_config.get(CONF_VERIFY_SSL)
     websocket = PlexWebsocket(
         plex_server.plex_server,
@@ -245,7 +247,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     def get_plex_account(plex_server):
         try:
             return plex_server.account
-        except plexapi.exceptions.BadRequest, plexapi.exceptions.Unauthorized:
+        except (plexapi.exceptions.BadRequest, plexapi.exceptions.Unauthorized):
             return None
 
     await hass.async_add_executor_job(get_plex_account, plex_server)

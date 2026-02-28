@@ -114,7 +114,7 @@ class PlexServer:
         if not self._plex_account and self._use_plex_tv:
             try:
                 self._plex_account = plexapi.myplex.MyPlexAccount(token=self._token)
-            except BadRequest, Unauthorized:
+            except (BadRequest, Unauthorized):
                 self._use_plex_tv = False
                 _LOGGER.error("Not authorized to access plex.tv with provided token")
                 raise
@@ -293,10 +293,7 @@ class PlexServer:
             media = self.fetch_item(rating_key)
             active_session.update_media(media)
 
-        if active_session.media_content_id != rating_key and state in (
-            "playing",
-            "paused",
-        ):
+        if state in ("playing", "paused"):
             await self.hass.async_add_executor_job(update_with_new_media)
 
         async_dispatcher_send(
@@ -309,6 +306,55 @@ class PlexServer:
             self.hass,
             PLEX_UPDATE_SENSOR_SIGNAL.format(self.machine_identifier),
         )
+
+    async def async_update_transcode_session(self, payload):
+        """Process transcode session updates from websocket callback."""
+        transcode_data = payload.get("TranscodeSession", [])
+        if not transcode_data:
+            return
+
+        transcode_info = transcode_data[0]
+        transcode_key = transcode_info.get("key", "")
+        session_id = transcode_key.split("/")[-1] if transcode_key else None
+
+        if not session_id:
+            return
+
+        _LOGGER.debug(
+            "Processing transcode session update: key=%s, session_id=%s",
+            transcode_key,
+            session_id,
+        )
+
+        for unique_id, active_session in self.active_sessions.items():
+            session_transcode_key = getattr(active_session, "transcode_session_id", None)
+            if session_transcode_key and session_id in session_transcode_key:
+                _LOGGER.debug(
+                    "Updating transcode session for %s: %s",
+                    unique_id,
+                    transcode_info,
+                )
+                active_session.update_from_transcode_session(transcode_info)
+                async_dispatcher_send(
+                    self.hass,
+                    PLEX_UPDATE_MEDIA_PLAYER_SESSION_SIGNAL.format(unique_id),
+                    active_session.state,
+                )
+                break
+            if not session_transcode_key:
+                active_session.transcode_session_id = transcode_key
+                _LOGGER.debug(
+                    "Set transcode_session_id for %s: %s",
+                    unique_id,
+                    transcode_key,
+                )
+                active_session.update_from_transcode_session(transcode_info)
+                async_dispatcher_send(
+                    self.hass,
+                    PLEX_UPDATE_MEDIA_PLAYER_SESSION_SIGNAL.format(unique_id),
+                    active_session.state,
+                )
+                break
 
     def _fetch_platform_data(self):
         """Fetch all data from the Plex server in a single method."""
@@ -402,7 +448,7 @@ class PlexServer:
                     identifier=machine_identifier,
                     token=self._plex_server.createToken(),
                 )
-            except NotFound, requests.exceptions.ConnectionError:
+            except (NotFound, requests.exceptions.ConnectionError):
                 _LOGGER.error(
                     "Direct client connection failed, will try again: %s (%s)",
                     name,
