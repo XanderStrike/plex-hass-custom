@@ -4,7 +4,7 @@ Custom Plex integration that overrides the default Home Assistant Plex integrati
 
 ## Features
 
-- none
+- adds available transcode session information to media_player attributes
 
 ## Installation
 
