@@ -191,8 +191,9 @@ class PlexServer:
                     error = error.__context__
                 if isinstance(error, ssl.SSLCertVerificationError):
                     domain = urlparse(self._url).netloc.split(":")[0]
-                    if domain.endswith("plex.direct") and error.args[0].startswith(
-                        f"hostname '{domain}' doesn't match"
+                    # OpenSSL's own wording for X509_V_ERR_HOSTNAME_MISMATCH
+                    if domain.endswith("plex.direct") and "Hostname mismatch" in str(
+                        error
                     ):
                         _LOGGER.warning(
                             "Plex SSL certificate's hostname changed, updating"
@@ -291,7 +292,10 @@ class PlexServer:
             media = self.fetch_item(rating_key)
             active_session.update_media(media)
 
-        if state in ("playing", "paused"):
+        if active_session.media_content_id != rating_key and state in (
+            "playing",
+            "paused",
+        ):
             await self.hass.async_add_executor_job(update_with_new_media)
 
         async_dispatcher_send(
